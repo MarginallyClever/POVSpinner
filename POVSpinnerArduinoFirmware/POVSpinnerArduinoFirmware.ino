@@ -1,38 +1,58 @@
+// Persistence Of Vision spinning LED tutorial
+// dan@marginallyclever.com (2019-01-01)
+
+// supported boards
+#define RUMBA 1
+#define RAMPS 2
+
+// your chosen board
+//#define BOARD_TYPE RUMBA
+//#define BOARD_TYPE RAMPS
+
+// sanity check
+#if !defined(BOARD_TYPE)
+#error You must choose a board type!
+#endif
+
+// pin assignments
+#if BOARD_TYPE == RAMPS
+#define MOTOR_0_STEP_PIN              (54)
+#define MOTOR_0_DIR_PIN               (55)
+#define MOTOR_0_ENABLE_PIN            (38)
+#define DATA_PIN 60  // Y_STEP_PIN
+#endif
+
+#if BOARD_TYPE == RUMBA
 #define MOTOR_0_STEP_PIN              (17)
 #define MOTOR_0_DIR_PIN               (16)
 #define MOTOR_0_ENABLE_PIN            (48)
+#define DATA_PIN 54  // Y_STEP_PIN
+#endif
 
-#define DATA_PIN 54
-#define NUM_LEDS 14
 
+#define NUM_LEDS             14
 
-#define STEPS_PER_TURN  200
-#define START_DELAY    1200
-#define MIN_DELAY       400
+#define STEPS_PER_TURN      200  // 1.8 degree stepper motor
 
-#define SPACING          16.5
-#define NUM_LIGHTS        7
-#define NUM_ANGLES      360
+// delay between steps when the machine starts moving.
+#define START_DELAY        1200  // us
+// delay between steps at top speed.
+// the limiting factor is strip.show(), not the motor.
+#define MIN_DELAY           500  // us
 
-#define GRID_SIZE         7
-#define GRID_SPACING (SPACING*2)
+#define SPACING              16.5  // mm.  distance between lights
+
+#define NUM_LIGHTS            7  // on each side
+#define DEGREES_PER_TURN    360
+
+#define GRID_SIZE             7  // bitmap grid is 7x7
+#define GRID_SPACING (SPACING*2) // mm.  grid size.
 
 
 #include <Adafruit_NeoPixel.h>
 #ifdef __AVR__
   #include <avr/power.h>
 #endif
-
-
-struct GridCell {
-  float x,y;
-  int index;
-};
-
-
-GridCell cells[GRID_SIZE*GRID_SIZE];
-int angleLightCell[NUM_LIGHTS * NUM_ANGLES];
-
 
 // Parameter 1 = number of pixels in strip
 // Parameter 2 = Arduino pin number (most are valid)
@@ -44,8 +64,7 @@ int angleLightCell[NUM_LIGHTS * NUM_ANGLES];
 //   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, DATA_PIN, NEO_GRB + NEO_KHZ800);
 
-int newWait=START_DELAY;
-
+///////////// LETTER BITMAPS ///////////////////
 char grid_h[] = {  // GRID_SIZE*GRID_SIZE
 0,0,0,0,0,0,0,
 0,1,0,0,0,1,0,
@@ -176,6 +195,7 @@ char grid_9[] = {  // GRID_SIZE*GRID_SIZE
 0,0,0,0,0,0,0,
 };
 
+// the message to display and the message length
 #define GRID_LIST_LENGTH 20
 char *grid_list[] {
   grid_h,
@@ -200,8 +220,26 @@ char *grid_list[] {
   grid__,
 };
 
+// which letter is being displayed now?
 int grid_list_index;
 char *grid;
+
+
+// how long to delay between each step of the motor.
+// this is used to accelerate at the start and achieve a higher top speed.
+int newWait=START_DELAY;
+
+// the bitmap floats invisibly in space.  This tool remembers where each bitmap
+// pixel is floating
+struct GridCell {
+  float x,y;
+  int index;
+};
+GridCell cells[GRID_SIZE*GRID_SIZE];
+
+// a map between the angle-distance of a light and the x/y position of each bitmap pixel.
+int angleLightCell[DEGREES_PER_TURN * NUM_LIGHTS];
+
 
 void setup() {
   pinMode(MOTOR_0_STEP_PIN  ,OUTPUT);
@@ -232,7 +270,7 @@ void setup() {
   }
   
   Serial.println("Calculating angle/light/cell relationships...");
-  for(int a=0;a<NUM_ANGLES;++a) {
+  for(int a=0;a<DEGREES_PER_TURN;++a) {
     float c = cos(radians(a));
     float s = sin(radians(a));
     for(int i=0;i<NUM_LIGHTS;++i) {
@@ -260,19 +298,15 @@ void setup() {
 
 
 void loop() {
-  uint16_t i, j, dir,s,t2;
-  long nextLetterTime=millis()+500;
+  uint16_t i, j=0, dir=1,s=0,t2=0;
   int angle, cellID;
-  
-  t2=0;
-  dir=1;
-  j=0;
-  s=0;
-  int COLOR_LIST_LENGTH=13;
   int color_list_index=0;
+  
+  long nextLetterTime=millis()+500;
   
   strip.setBrightness(64);
       
+  int COLOR_LIST_LENGTH=7;
   uint32_t color_list[] = {
     strip.Color(  0,  0,255),
     strip.Color(  0,255,  0),
@@ -293,6 +327,7 @@ void loop() {
     tEnd = micros() + newWait;
     digitalWrite(MOTOR_0_STEP_PIN,LOW);
 
+    // count rotation steps
     s++;
     aSum+=aInc;
     if(s>=STEPS_PER_TURN) {
@@ -301,27 +336,31 @@ void loop() {
     }
     angle = aSum;
 
+    // use the lookup table to find which grid cell is closest to each light.
+    // then use the grid cell to find the color of the current letter bitmap.
     offset  = angleLightCell + ((angle    )    )*NUM_LIGHTS;
     offset2 = angleLightCell + ((angle+180)%360)*NUM_LIGHTS;
     for(i=0; i<NUM_LIGHTS; i++) {
-      cellID = offset[i];
-      strip.setPixelColor(NUM_LIGHTS+i,grid[cellID]*c3);
-
-      cellID = offset2[i];
-      strip.setPixelColor(NUM_LIGHTS-1-i,grid[cellID]*c3);
+      strip.setPixelColor(NUM_LIGHTS+i  , grid[offset [i]]*c3);  // light one half of the strip
+      strip.setPixelColor(NUM_LIGHTS-1-i, grid[offset2[i]]*c3);  // light the other half
     }
     strip.show();
-    
+
+    // wait a bit
     while(micros()<tEnd);
     
+    // step the motor
     digitalWrite(MOTOR_0_STEP_PIN,HIGH);
-    
+
+    // accelerate, maybe
     if(newWait>MIN_DELAY) {
-      if(t2++>2) {
+      if(t2++>2) {  // >2 controls the acceleration. >10 would be slower.
         newWait--;
         t2=0;
       }
     }
+
+    // change to the next letter and next color?
     if(millis()>nextLetterTime) {
       nextLetterTime=millis()+400;
 
