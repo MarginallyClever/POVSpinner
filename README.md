@@ -10,6 +10,7 @@ Support us on Patreon!  https://www.patreon.com/imakerobots
 [start](https://www.instagram.com/p/Br9ADS2HSqk/)
 [better](https://www.instagram.com/p/Br9ITGbnAZ6/)
 [finished](https://www.instagram.com/p/BsEod8YnH0e/)
+[But also](https://www.instagram.com/p/BsGuSJFnXem/)
 
 ## Parts (off the shelf)
 
@@ -49,6 +50,11 @@ GND --> Slip ring black wire --> LED G.
 
 Stepper motor connected to X axis.
 A4988 connected to X axis.
+
+## Also
+
+STLs available on [thingiverse](https://www.thingiverse.com/thing:3327441)
+Code available on [github](https://github.com/MarginallyClever/POVSpinner)
 
 ## Thanks
 
