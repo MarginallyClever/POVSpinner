@@ -1,5 +1,6 @@
 // Persistence Of Vision spinning LED tutorial
 // dan@marginallyclever.com (2019-01-01)
+// 
 
 // supported boards
 #define RUMBA 1
@@ -64,6 +65,20 @@
 //   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, DATA_PIN, NEO_GRB + NEO_KHZ800);
 
+
+// colors to display on the letters in the message.
+#define COLOR_LIST_LENGTH   7
+uint32_t color_list[] = {
+  strip.Color(  0,  0,255),
+  strip.Color(  0,255,  0),
+  strip.Color(255,  0,  0),
+  strip.Color(  0,255,255),
+  strip.Color(255,255,  0),
+  strip.Color(255,  0,255),
+  strip.Color(255,255,255),
+};
+
+  
 ///////////// LETTER BITMAPS ///////////////////
 char grid_h[] = {  // GRID_SIZE*GRID_SIZE
 0,0,0,0,0,0,0,
@@ -195,8 +210,9 @@ char grid_9[] = {  // GRID_SIZE*GRID_SIZE
 0,0,0,0,0,0,0,
 };
 
-// the message to display and the message length
-#define GRID_LIST_LENGTH 20
+
+#define GRID_LIST_LENGTH 20  // length of the message
+// A list of pointers to each bitmap.
 char *grid_list[] {
   grid_h,
   grid_a,
@@ -222,12 +238,14 @@ char *grid_list[] {
 
 // which letter is being displayed now?
 int grid_list_index;
+// a pointer to the current bitmap.
 char *grid;
 
 
 // how long to delay between each step of the motor.
 // this is used to accelerate at the start and achieve a higher top speed.
 int newWait=START_DELAY;
+
 
 // the bitmap floats invisibly in space.  This tool remembers where each bitmap
 // pixel is floating
@@ -239,6 +257,7 @@ GridCell cells[GRID_SIZE*GRID_SIZE];
 
 // a map between the angle-distance of a light and the x/y position of each bitmap pixel.
 int angleLightCell[DEGREES_PER_TURN * NUM_LIGHTS];
+
 
 
 void setup() {
@@ -301,27 +320,18 @@ void loop() {
   uint16_t i, j=0, dir=1,s=0,t2=0;
   int angle, cellID;
   int color_list_index=0;
-  
-  long nextLetterTime=millis()+500;
-  
-  strip.setBrightness(64);
-      
-  int COLOR_LIST_LENGTH=7;
-  uint32_t color_list[] = {
-    strip.Color(  0,  0,255),
-    strip.Color(  0,255,  0),
-    strip.Color(255,  0,  0),
-    strip.Color(  0,255,255),
-    strip.Color(255,255,  0),
-    strip.Color(255,  0,255),
-    strip.Color(255,255,255),
-  };
+
   uint32_t c3=color_list[color_list_index];
-  float aInc = 360.0/(float)STEPS_PER_TURN;
+  const float aInc = 360.0/(float)STEPS_PER_TURN;
   float aSum=0;
   int *offset;
   int *offset2;
   unsigned long tEnd;
+  
+  long nextLetterTime=millis()+500;
+
+  // adjust brightness to taste.
+  strip.setBrightness(64);
   
   do {
     tEnd = micros() + newWait;
@@ -352,7 +362,7 @@ void loop() {
     // step the motor
     digitalWrite(MOTOR_0_STEP_PIN,HIGH);
 
-    // accelerate, maybe
+    // accelerate
     if(newWait>MIN_DELAY) {
       if(t2++>2) {  // >2 controls the acceleration. >10 would be slower.
         newWait--;
