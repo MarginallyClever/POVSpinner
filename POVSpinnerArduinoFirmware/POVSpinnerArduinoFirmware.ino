@@ -1,6 +1,6 @@
 // Persistence Of Vision spinning LED tutorial
 // dan@marginallyclever.com (2019-01-01)
-// 
+// https://github.com/MarginallyClever/POVSpinner
 
 // supported boards
 #define RUMBA 1

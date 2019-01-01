@@ -2,6 +2,9 @@
 
 A spinning light animation that uses Persistence-of-vision.
 
+Another great http://marginallyclever.com/ production.
+Support us on Patreon!  https://www.patreon.com/imakerobots
+
 ## Demo
 
 [start](https://www.instagram.com/p/Br9ADS2HSqk/)
@@ -46,3 +49,7 @@ GND --> Slip ring black wire --> LED G.
 
 Stepper motor connected to X axis.
 A4988 connected to X axis.
+
+## Thanks
+
+Special thanks to [electronics_garage](https://www.instagram.com/electronics_garage/) for the suggestion.
